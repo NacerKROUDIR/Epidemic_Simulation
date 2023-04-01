@@ -4,25 +4,32 @@ from numpy import clip, interp, round
 
 
 class Label:
-    def __init__(self, display, font, text, position, background_color=(220, 220, 220)):
+    def __init__(self, display, font, label, value, position, text_color=(0,0,0),background_color=(220, 220, 220)):
         self.display = display
         self.font = font
-        self.text = font.render(str(round(self.text, 2)),True, (0, 0, 0), background_color)
-        self.text_rect = self.text.get_rect()
-        self.text_rect.bottomright = position
+        self.position = position
+        self.text_color = text_color
+        self.background_color = background_color
+        self.x, self.y = position[0], position[1]
+        self.label = font.render(label,True, self.text_color, self.background_color)
+        self.label_rect = self.label.get_rect()
+        self.label_rect.bottomleft = self.position
+        self.value = font.render(str(round(value, 1)),True, self.text_color, background_color)
+        self.value_rect = self.value.get_rect()
+        self.value_rect.bottomright = (self.x+80, self.y)
 
-    def update_text(self, text):
-        self.text = text
-
-    def draw(self):
-        self.display.blit(self.text, self.text_rect)
+    def draw(self, value):
+        self.display.blit(self.label, self.label_rect)
+        self.value = self.font.render(str(round(value, 2)),True, self.text_color, self.background_color)
+        self.value_rect = self.value.get_rect()
+        self.value_rect.bottomright = (self.x+80, self.y)
+        self.display.blit(self.value, self.value_rect)
 
 
 class Slider:
     def __init__(self, display, font, label, position, width=200, height=22, valueRange=(2,10000), initial_value=3, buttonRadius=10, buttonColor=(80,80,80), sliderBarColor=(200,200,200), textColor = (0,0,0), textBGColor=(220, 220, 220), append_text=""):
         self.display = display
         self.font = font
-        self.label = label
         self.position = position
         self.width = width
         self.height = height
@@ -42,8 +49,8 @@ class Slider:
         self.centerY = int(position[1] + (height/2))
         self.pressed = False
         self.value = initial_value
-        label = self.font.render(self.label, True, self.textColor, self.textBGColor)
-        self.labelRect = label.get_rect()
+        self.label = self.font.render(label, True, self.textColor, self.textBGColor)
+        self.labelRect = self.label.get_rect()
         self.labelRect.bottomright = (self.minXBarPosition-15, self.minYBarPosition + self.height - 2)
         value = self.font.render(str(int(self.value)), True, self.textColor, self.textBGColor)
         self.valueRect = value.get_rect()
@@ -53,8 +60,7 @@ class Slider:
         pygame.draw.rect(self.display, self.sliderBarColor, self.sliderBar, border_radius=10)
         gfxdraw.circle(self.display, self.centerX, self.centerY, self.buttonRadius, self.buttonColor)
         gfxdraw.filled_circle(self.display, self.centerX, self.centerY, self.buttonRadius, self.buttonColor)
-        label = self.font.render(self.label, True, self.textColor, self.textBGColor)
-        self.display.blit(label, self.labelRect)
+        self.display.blit(self.label, self.labelRect)
         value = self.font.render(str(self.value)+self.append_text, True, self.textColor, self.textBGColor)
         self.display.blit(value, self.valueRect)
         return self.check_click()

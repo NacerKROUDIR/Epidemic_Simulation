@@ -45,6 +45,7 @@ community9_x, community9_y = community3_x, community7_y
 communities_coor = [(community1_x, community1_y), (community2_x, community2_y), (community3_x, community3_y),
                     (community4_x, community4_y), (community5_x, community5_y), (community6_x, community6_y),
                     (community7_x, community7_y), (community8_x, community8_y), (community9_x, community9_y)]
+practical_probability_of_infection = 0
 
 
 class Particle:
@@ -296,6 +297,9 @@ quarantine_toggle = it.Toggle(display, font, 'Quarantine', (1310, 415), initial_
 quarantine_after_slider = it.Slider(display, font, 'Quarantine After', (1150, 460), valueRange=(1, 30), initial_value=quarantine_after, textBGColor=BACKGROUND_COLOR, append_text="s")
 enable_traveling_toggle = it.Toggle(display, font, 'Traveling', (1310, 505), initial_value=enable_traveling, textBGColor=BACKGROUND_COLOR)
 
+# Labels
+practical_probability_of_infection_label = it.Label(display, font, 'Prob', practical_probability_of_infection, (910, 25), background_color=BACKGROUND_COLOR)
+
 particles = populate()
 free_particles = particles[:]
 walls = build_wall(mode)
@@ -307,6 +311,7 @@ i = 0
 while True:
     display.fill(BACKGROUND_COLOR)
     np.vectorize(draw_wall)(walls)
+    # Draw Interactive Tools
     if active_button.draw():
         for wall in walls:
             space.remove(wall.body, wall.shape)
@@ -345,6 +350,8 @@ while True:
         total_infected = initially_infected
         if not start_button.paused:
             start_button.pause()
+    # Draw Labels
+    practical_probability_of_infection_label.draw(practical_probability_of_infection*100)
     start_button.draw()
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -352,10 +359,6 @@ while True:
             total_interactions_with_infected = 0
             for particle in particles:
                 total_interactions_with_infected += particle.interaction_with_infected_count
-            try:
-                practical_probability_of_infection = total_infected/total_interactions_with_infected
-            except ZeroDivisionError:
-                practical_probability_of_infection = 0
             print(f"total number of interactions with infected: {total_interactions_with_infected}")
             print(f"practical probability of infection: {practical_probability_of_infection}")
             plot_result(susceptible_count, infected_count, recovered_count)
@@ -394,8 +397,6 @@ while True:
 
             # Disable interruptions when particle is traveling
             if particle.traveling:
-                #if not ((width + 100 > particle.body.position[0] > width) and (
-                #        height > particle.body.position[1] > height - 100)):
                 if not ((particle.destination_x + 45 > particle.body.position[0] > particle.destination_x - 45) and (
                         particle.destination_y + 45 > particle.body.position[1] > particle.destination_y - 45)):
                     particle.travel()
