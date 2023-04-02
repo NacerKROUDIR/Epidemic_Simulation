@@ -17,6 +17,9 @@ clock = pygame.time.Clock()
 space = pymunk.Space()
 min_speed, max_speed = -80, 80
 FPS = 30
+day_length_in_frames = 30
+two_days = day_length_in_frames*2
+day = 0
 infection_radius = 16  # 4 to 30
 radius = infection_radius/2
 drawing_radius = 4
@@ -46,6 +49,7 @@ communities_coor = [(community1_x, community1_y), (community2_x, community2_y), 
                     (community4_x, community4_y), (community5_x, community5_y), (community6_x, community6_y),
                     (community7_x, community7_y), (community8_x, community8_y), (community9_x, community9_y)]
 practical_probability_of_infection = 0
+R0 = 0
 
 
 class Particle:
@@ -251,7 +255,6 @@ def populate(population=population, initially_infected=initially_infected):
 
 
 def plot_result(susceptible_count, infected_count, recovered_count):
-    day_length_in_frames = 30
     number_of_frames = len(susceptible_count)
     colors = ['#ff4c4c', '#34bf49', '#0099e5']
     labels = ['Infected', 'Susceptible', 'Removed']
@@ -298,7 +301,9 @@ quarantine_after_slider = it.Slider(display, font, 'Quarantine After', (1150, 46
 enable_traveling_toggle = it.Toggle(display, font, 'Traveling', (1310, 505), initial_value=enable_traveling, textBGColor=BACKGROUND_COLOR)
 
 # Labels
-practical_probability_of_infection_label = it.Label(display, font, 'Prob', practical_probability_of_infection, (910, 25), background_color=BACKGROUND_COLOR)
+day_label = it.Label(display, font, 'Day', day, (910, 25), background_color=BACKGROUND_COLOR)
+practical_probability_of_infection_label = it.Label(display, font, 'Prob', practical_probability_of_infection, (910, 45), background_color=BACKGROUND_COLOR)
+R0_label = it.Label(display, font, 'R0', R0, (910, 65), background_color=BACKGROUND_COLOR)
 
 particles = populate()
 free_particles = particles[:]
@@ -307,10 +312,12 @@ quarantine_center_x, quarantine_center_y = width+50, height-50
 susceptible_count, infected_count, recovered_count = [], [], []
 total_infected = initially_infected
 quarantine_after = quarantine_after*FPS
-i = 0
+infected_count_two_days_ago = initially_infected
+i = 1
 while True:
     display.fill(BACKGROUND_COLOR)
     np.vectorize(draw_wall)(walls)
+
     # Draw Interactive Tools
     if active_button.draw():
         for wall in walls:
@@ -322,6 +329,10 @@ while True:
         free_particles = particles[:]
         susceptible_count, infected_count, recovered_count = [], [], []
         total_infected = initially_infected
+        practical_probability_of_infection = 0
+        day = 0
+        infected_count_two_days_ago = initially_infected
+        R0 = 0
         if not start_button.paused:
             start_button.pause()
     if population_slider.draw():
@@ -348,11 +359,19 @@ while True:
         free_particles = particles[:]
         susceptible_count, infected_count, recovered_count = [], [], []
         total_infected = initially_infected
+        practical_probability_of_infection = 0
+        day = 0
+        infected_count_two_days_ago = initially_infected
+        R0 = 0
         if not start_button.paused:
             start_button.pause()
+    start_button.draw()
+
     # Draw Labels
     practical_probability_of_infection_label.draw(practical_probability_of_infection*100)
-    start_button.draw()
+    R0_label.draw(R0)
+    day_label.draw(day)
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
@@ -393,7 +412,6 @@ while True:
                 recovered_count_this_frame += 1
             else:
                 susceptible_count_this_frame += 1
-            # Live practical probability of infection
 
             # Disable interruptions when particle is traveling
             if particle.traveling:
@@ -404,13 +422,24 @@ while True:
                     if particle.destination_x == quarantine_center_x:
                         particle.quarantined = True
                     particle.arrive()
-            total_infected = recovered_count_this_frame + infected_count_this_frame - initially_infected
             total_interactions_with_infected += particle.interaction_with_infected_count
+
+        # Some Statistics
+        total_infected = recovered_count_this_frame + infected_count_this_frame - initially_infected
+        try:
+            practical_probability_of_infection = total_infected / total_interactions_with_infected
+        except ZeroDivisionError:
+            practical_probability_of_infection = 0
+        if i%two_days==0:
+            day+=1
             try:
-                practical_probability_of_infection = total_infected / total_interactions_with_infected
+                R0 = infected_count_this_frame / infected_count_two_days_ago
+                infected_count_two_days_ago = infected_count_this_frame
             except ZeroDivisionError:
-                practical_probability_of_infection = 0
-            # insert practical probability rectangle
+                infected_count_two_days_ago = infected_count_this_frame
+        elif i%day_length_in_frames==0:
+            day+=1
+            
         if mode == 1:
             if enable_traveling:
                 if i % 90 == 0:
