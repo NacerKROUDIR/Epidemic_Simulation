@@ -20,7 +20,7 @@ class Label:
 
     def draw(self, value):
         self.display.blit(self.label, self.label_rect)
-        self.value = self.font.render(str(round(value, 2)),True, self.text_color, self.background_color)
+        self.value = self.font.render(str(round(value, 1)),True, self.text_color, self.background_color)
         self.value_rect = self.value.get_rect()
         self.value_rect.bottomright = (self.x+80, self.y)
         self.display.blit(self.value, self.value_rect)
