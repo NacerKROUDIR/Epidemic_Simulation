@@ -3,6 +3,10 @@ import pymunk
 import numpy as np
 import matplotlib.pyplot as plt
 import Interactive_Tools as it
+import matplotlib
+import matplotlib.backends.backend_agg as agg
+matplotlib.use("Agg")
+plt.rcParams['axes.facecolor'] = (0.67,0.67,0.67)
 
 """tutrial video: https://www.youtube.com/watch?v=yJK5J8a7NFs"""
 pygame.init()
@@ -258,7 +262,10 @@ def plot_result(susceptible_count, infected_count, recovered_count):
     number_of_frames = len(susceptible_count)
     colors = ['#ff4c4c', '#34bf49', '#0099e5']
     labels = ['Infected', 'Susceptible', 'Removed']
-    plt.stackplot(range(number_of_frames), infected_count, susceptible_count, recovered_count,
+    fig = plt.figure(figsize=[11.4, 3], dpi=100)
+    fig.patch.set_facecolor((0.67,0.67,0.67))
+    ax = fig.gca()
+    ax.stackplot(range(number_of_frames), infected_count, susceptible_count, recovered_count,
                   colors=colors, labels=labels)
     number_of_days = number_of_frames // day_length_in_frames
     if number_of_days < 10:
@@ -280,10 +287,16 @@ def plot_result(susceptible_count, infected_count, recovered_count):
         ticks = np.arange(0, number_of_frames + 1, day_length_in_frames * 100).astype(int)
         labels = ['{}'.format(v // day_length_in_frames) for v in ticks]
     plt.xticks(ticks, labels)
-    plt.xlabel('Days')
+    # plt.xlabel('Days')
     plt.ylabel('Population')
     plt.legend()
-    plt.show()
+    canvas = agg.FigureCanvasAgg(fig)
+    canvas.draw()
+    renderer = canvas.get_renderer()
+    raw_data = renderer.tostring_rgb()
+    size = canvas.get_width_height()
+    surf = pygame.image.fromstring(raw_data, size, "RGB")
+    return surf
 
 
 # Interactive tools
@@ -314,8 +327,12 @@ total_infected = initially_infected
 quarantine_after = quarantine_after*FPS
 infected_count_two_days_ago = initially_infected
 i = 1
+
+surf = plot_result(susceptible_count, infected_count, recovered_count)
+
 while True:
     display.fill(BACKGROUND_COLOR)
+    display.blit(surf, (-40,500))
     np.vectorize(draw_wall)(walls)
 
     # Draw Interactive Tools
@@ -380,7 +397,6 @@ while True:
                 total_interactions_with_infected += particle.interaction_with_infected_count
             print(f"total number of interactions with infected: {total_interactions_with_infected}")
             print(f"practical probability of infection: {practical_probability_of_infection}")
-            plot_result(susceptible_count, infected_count, recovered_count)
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_SPACE:
                 start_button.pause()
@@ -432,6 +448,7 @@ while True:
             practical_probability_of_infection = 0
         if i%two_days==0:
             day+=1
+            surf = plot_result(susceptible_count, infected_count, recovered_count)
             try:
                 R0 = infected_count_this_frame / infected_count_two_days_ago
                 infected_count_two_days_ago = infected_count_this_frame
@@ -439,6 +456,7 @@ while True:
                 infected_count_two_days_ago = infected_count_this_frame
         elif i%day_length_in_frames==0:
             day+=1
+            surf = plot_result(susceptible_count, infected_count, recovered_count)
             
         if mode == 1:
             if enable_traveling:
