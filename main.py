@@ -14,6 +14,11 @@ pygame.display.set_caption("Epidemic Simulation Tool")
 font = pygame.font.Font(None, 25)
 font2 = pygame.font.Font(None, 20)
 BACKGROUND_COLOR = (170, 170, 170)
+susceptible_color = (50, 250, 80)
+sympotomatic_color = (250,20,20)
+asympotomatic_color = (240, 240, 41)
+removed_color = (30, 30, 200)
+traveler_color = (186, 18, 252)
 WIDTH, HEIGHT = 1400, 800
 width, height = 900, 500
 display = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -107,16 +112,16 @@ class Particle:
     def draw(self):
         x, y = self.body.position
         if particle.traveling:
-            pygame.draw.circle(display, (186, 18, 252), (int(x), int(y)), drawing_radius)
+            pygame.draw.circle(display, traveler_color, (int(x), int(y)), drawing_radius)
         elif self.infected:
             if self.symptomatic:
-                pygame.draw.circle(display, (250,20,20), (int(x), int(y)), drawing_radius)
+                pygame.draw.circle(display, sympotomatic_color, (int(x), int(y)), drawing_radius)
                 pygame.draw.circle(display, (252, 100, 100), (int(x), int(y)), infection_radius, 1)
             else:
-                pygame.draw.circle(display, (240, 240, 41), (int(x), int(y)), drawing_radius)
+                pygame.draw.circle(display, asympotomatic_color, (int(x), int(y)), drawing_radius)
                 pygame.draw.circle(display, (245, 245, 91), (int(x), int(y)), infection_radius, 1)
         elif self.recovered:
-            pygame.draw.circle(display, (30, 30, 200), (int(x), int(y)), drawing_radius)
+            pygame.draw.circle(display, removed_color, (int(x), int(y)), drawing_radius)
         else:
             # display.blit(self.susceptible_icon, (int(x), int(y)))
             pygame.draw.circle(display, (50, 250, 80), (int(x), int(y)), drawing_radius)
@@ -315,8 +320,13 @@ enable_traveling_toggle = it.Toggle(display, font, 'Traveling', (1310, 505), ini
 
 # Labels
 day_label = it.Label(display, font, 'Day', day, (910, 25), background_color=BACKGROUND_COLOR)
-practical_probability_of_infection_label = it.Label(display, font, 'Prob', practical_probability_of_infection, (910, 45), background_color=BACKGROUND_COLOR)
-R0_label = it.Label(display, font, 'R0', R0, (910, 65), background_color=BACKGROUND_COLOR)
+practical_probability_of_infection_label = it.Label(display, font, 'Prob', practical_probability_of_infection, (910, 50), background_color=BACKGROUND_COLOR)
+R0_label = it.Label(display, font, 'R0', R0, (910, 75), background_color=BACKGROUND_COLOR)
+susceptible_label = it.KeyLabel(display, font, 'Suscep', susceptible_color, (910, 290), background_color=BACKGROUND_COLOR)
+sympotomatic_label = it.KeyLabel(display, font, 'Sympto', sympotomatic_color, (910, 315), background_color=BACKGROUND_COLOR)
+asymptomatic_label = it.KeyLabel(display, font, 'Asympto', asympotomatic_color, (910, 340), background_color=BACKGROUND_COLOR)
+removed_label = it.KeyLabel(display, font, 'Removed', removed_color, (910, 365), background_color=BACKGROUND_COLOR)
+traveler_label = it.KeyLabel(display, font, 'Traveler', traveler_color, (910, 390), background_color=BACKGROUND_COLOR)
 
 particles = populate()
 free_particles = particles[:]
@@ -388,6 +398,11 @@ while True:
     practical_probability_of_infection_label.draw(practical_probability_of_infection*100)
     R0_label.draw(R0)
     day_label.draw(day)
+    susceptible_label.draw()
+    sympotomatic_label.draw()
+    asymptomatic_label.draw()
+    removed_label.draw()
+    traveler_label.draw()
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:

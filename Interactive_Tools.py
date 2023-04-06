@@ -26,6 +26,24 @@ class Label:
         self.display.blit(self.value, self.value_rect)
 
 
+class KeyLabel:
+    def __init__(self, display, font, label, color, position, radius=4, text_color=(0,0,0),background_color=(220, 220, 220)):
+        self.display = display
+        self.font = font
+        self.color = color
+        self.position = position
+        self.x, self.y = self.position[0]+80, self.position[1]-8
+        self.radius = radius
+        self.text_color = text_color
+        self.background_color = background_color
+        self.label = font.render(label,True, self.text_color, self.background_color)
+        self.label_rect = self.label.get_rect()
+        self.label_rect.bottomleft = self.position
+
+    def draw(self):
+        self.display.blit(self.label, self.label_rect)
+        pygame.draw.circle(self.display, self.color, (self.x, self.y), self.radius)
+
 class Slider:
     def __init__(self, display, font, label, position, width=200, height=22, valueRange=(2,10000), initial_value=3, buttonRadius=10, buttonColor=(80,80,80), sliderBarColor=(200,200,200), textColor = (0,0,0), textBGColor=(220, 220, 220), append_text=""):
         self.display = display
