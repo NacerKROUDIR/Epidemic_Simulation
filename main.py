@@ -57,6 +57,8 @@ community9_x, community9_y = community3_x, community7_y
 communities_coor = [(community1_x, community1_y), (community2_x, community2_y), (community3_x, community3_y),
                     (community4_x, community4_y), (community5_x, community5_y), (community6_x, community6_y),
                     (community7_x, community7_y), (community8_x, community8_y), (community9_x, community9_y)]
+traveling_rate_per_week = np.round(7/3, 1) # per week
+traveling_period = int(day_length_in_frames/(traveling_rate_per_week/7))
 practical_probability_of_infection = 0
 R0 = 0
 
@@ -213,16 +215,7 @@ def initial_infect(particle):
 
 
 def build_wall(mode):
-    if mode == 0:
-        # Normal Layout
-        walls = np.array((Wall((width + 100, 0), (width + 100, height + 4)),       # right wall
-                          Wall((0, 0), (0, height)),                               # left wall
-                          Wall((0, 0), (width + 100, 0)),                          # top wall
-                          Wall((0, height), (width + 100, height)),                # bottom wall
-                          Wall((width, 0), (width, height)),
-                          Wall((width, height - 100), (width + 100, height - 100))
-                  ))
-    elif mode == 1:
+    if mode == 1:
         # Communities Layout
         walls = np.array((Wall((width + 100, 0), (width + 100, height + 4)),          # right wall
                           Wall((0, 0), (0, height)),                                  # left wall
@@ -236,7 +229,14 @@ def build_wall(mode):
                           Wall((2*width//3, 0), (2*width//3, height), 4)
                           ))
     else:
-        walls = None
+        # Normal Layout
+        walls = np.array((Wall((width + 100, 0), (width + 100, height + 4)),       # right wall
+                          Wall((0, 0), (0, height)),                               # left wall
+                          Wall((0, 0), (width + 100, 0)),                          # top wall
+                          Wall((0, height), (width + 100, height)),                # bottom wall
+                          Wall((width, 0), (width, height)),
+                          Wall((width, height - 100), (width + 100, height - 100))
+                  ))
     return walls
 
 
@@ -313,10 +313,11 @@ percentage_initially_infected_slider = it.Slider(display, font, 'Initially Infec
 infection_radius_slider = it.Slider(display, font, 'Infection Radius', (1150, 235), valueRange=(4, 30), initial_value=infection_radius, textBGColor=BACKGROUND_COLOR)
 probability_of_infection_slider = it.Slider(display, font, 'Infection Prob', (1150, 280), valueRange=(0, 100), initial_value=probability_of_infection, textBGColor=BACKGROUND_COLOR, append_text="%")
 probability_of_symptoms_slider = it.Slider(display, font, 'Symptoms Prob', (1150, 325), valueRange=(0, 100), initial_value=probability_of_symptoms, textBGColor=BACKGROUND_COLOR, append_text="%")
-recovery_time_slider = it.Slider(display, font, 'Recovery Time', (1150, 370), valueRange=(1, 30), initial_value=recovery_time, textBGColor=BACKGROUND_COLOR, append_text="s")
+recovery_time_slider = it.Slider(display, font, 'Recovery Time', (1150, 370), valueRange=(1, 30), initial_value=recovery_time, textBGColor=BACKGROUND_COLOR, append_text="d")
 quarantine_toggle = it.Toggle(display, font, 'Quarantine', (1310, 415), initial_value=quarantine, textBGColor=BACKGROUND_COLOR)
-quarantine_after_slider = it.Slider(display, font, 'Quarantine After', (1150, 460), valueRange=(1, 30), initial_value=quarantine_after, textBGColor=BACKGROUND_COLOR, append_text="s")
+quarantine_after_slider = it.Slider(display, font, 'Quarantine After', (1150, 460), valueRange=(1, 30), initial_value=quarantine_after, textBGColor=BACKGROUND_COLOR, append_text="d")
 enable_traveling_toggle = it.Toggle(display, font, 'Traveling', (1310, 505), initial_value=enable_traveling, textBGColor=BACKGROUND_COLOR)
+traveling_rate_slider = it.Slider(display, font, 'Traveling Rate', (1150, 550), valueRange=(1, 7), initial_value=traveling_rate_per_week, textBGColor=BACKGROUND_COLOR, append_text="/w", value_datatype='float')
 
 # Labels
 day_label = it.Label(display, font, 'Day', day, (910, 25), background_color=BACKGROUND_COLOR)
@@ -380,6 +381,9 @@ while True:
         quarantine_after = quarantine_after_slider.value * FPS
     if enable_traveling_toggle.draw():
         enable_traveling = enable_traveling_toggle.value
+    if traveling_rate_slider.draw():
+        traveling_rate_per_week = traveling_rate_slider.value
+        traveling_period = int(day_length_in_frames/(traveling_rate_per_week/7))
     if reset_button.draw():
         initially_infected = int(np.ceil(population * percentage_initially_infected / 100))
         particles = reset_button.reset(space, particles, population, initially_infected)
@@ -475,7 +479,7 @@ while True:
             
         if mode == 1:
             if enable_traveling:
-                if i % 90 == 0:
+                if i % traveling_period == 0:
                     particle = np.random.choice(free_particles)
                     if not particle.traveling:
                         destination = np.random.randint(1, 10)
