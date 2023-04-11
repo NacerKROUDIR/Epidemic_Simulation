@@ -45,7 +45,7 @@ class KeyLabel:
         pygame.draw.circle(self.display, self.color, (self.x, self.y), self.radius)
 
 class Slider:
-    def __init__(self, display, font, label, position, width=200, height=22, valueRange=(2,10000), initial_value=3, buttonRadius=10, buttonColor=(80,80,80), sliderBarColor=(200,200,200), textColor = (0,0,0), textBGColor=(220, 220, 220), append_text=""):
+    def __init__(self, display, font, label, position, width=200, height=22, valueRange=(2,10000), initial_value=3, buttonRadius=10, buttonColor=(80,80,80), sliderBarColor=(200,200,200), textColor = (0,0,0), textBGColor=(220, 220, 220), append_text="", value_datatype='int'):
         self.display = display
         self.font = font
         self.position = position
@@ -58,6 +58,7 @@ class Slider:
         self.textColor = textColor
         self.textBGColor = textBGColor
         self.append_text = append_text
+        self.value_datatype = value_datatype
         self.sliderBar = pygame.Rect(position, (width, height))
         self.minXBarPosition = self.position[0] + self.buttonRadius
         self.maxXBarPosition = self.position[0] + self.width - self.buttonRadius - 1
@@ -89,14 +90,20 @@ class Slider:
             mouseX, mouseY = pygame.mouse.get_pos()
             if self.pressed:
                 self.centerX = clip(mouseX, self.minXBarPosition, self.maxXBarPosition)
-                self.value = int(interp(self.centerX, (self.minXBarPosition, self.maxXBarPosition), self.valueRange))
+                if self.value_datatype == 'int':
+                    self.value = int(interp(self.centerX, (self.minXBarPosition, self.maxXBarPosition), self.valueRange))
+                else:
+                    self.value = round(interp(self.centerX, (self.minXBarPosition, self.maxXBarPosition), self.valueRange), 1)
                 action = True
             else:
                 if self.minXBarPosition < mouseX < self.maxXBarPosition and self.minYBarPosition < mouseY < self.maxYBarPosition:
                     self.centerX = clip(mouseX, self.minXBarPosition, self.maxXBarPosition)
                     self.pressed = True
                     action = True
-                    self.value = int(interp(self.centerX, (self.minXBarPosition, self.maxXBarPosition), self.valueRange))
+                    if self.value_datatype == 'int':
+                        self.value = int(interp(self.centerX, (self.minXBarPosition, self.maxXBarPosition), self.valueRange))
+                    else:
+                        self.value = round(interp(self.centerX, (self.minXBarPosition, self.maxXBarPosition), self.valueRange), 1)
         else:
             if self.pressed:
                 action=True
