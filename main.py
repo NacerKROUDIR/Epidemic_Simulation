@@ -26,7 +26,9 @@ clock = pygame.time.Clock()
 space = pymunk.Space()
 min_speed, max_speed = -80, 80
 FPS = 30
-day_length_in_frames = 30
+simulation_speed = 1
+simulation_speed_temp = simulation_speed
+day_length_in_frames = 30//simulation_speed
 two_days = day_length_in_frames*2
 day = 0
 infection_radius = 16  # 4 to 30
@@ -35,12 +37,12 @@ drawing_radius = 4
 population = 300
 percentage_initially_infected = 1  # %
 initially_infected = int(np.ceil(population * percentage_initially_infected/100))
-probability_of_infection = 100     # %
+probability_of_infection = 7       # %
 probability_of_symptoms = 100      # %
-recovery_time = 10  # seconds
+recovery_time = 10  # days
 social_distancing = False
 quarantine = False
-quarantine_after = 5  # seconds
+quarantine_after = 5  # days
 mode = 0
 enable_traveling = True
 wall1_x, wall2_x = width//3 + 1, 2*width//3 + 1
@@ -81,7 +83,7 @@ class Particle:
         self.symptomatic = False
         self.infected_time = 0
         self.recovered = False
-        self.recovery_time = recovery_time*FPS
+        self.recovery_time = recovery_time*day_length_in_frames
         space.add(self.body, self.shape)
         self.interaction_with_infected_count = 0
         self.traveling = False
@@ -196,7 +198,7 @@ class Wall:
         self.p1 = p1
         self.p2 = p2
         self.body = pymunk.Body(body_type=pymunk.Body.STATIC)
-        self.shape = pymunk.Segment(self.body, p1, p2, 2)
+        self.shape = pymunk.Segment(self.body, p1, p2, 5)
         self.shape.elasticity = 1
         self.shape.collision_type = 0
         space.add(self.body, self.shape)
@@ -316,8 +318,9 @@ probability_of_symptoms_slider = it.Slider(display, font, 'Symptoms Prob', (1150
 recovery_time_slider = it.Slider(display, font, 'Recovery Time', (1150, 370), valueRange=(1, 30), initial_value=recovery_time, textBGColor=BACKGROUND_COLOR, append_text="d")
 quarantine_toggle = it.Toggle(display, font, 'Quarantine', (1310, 415), initial_value=quarantine, textBGColor=BACKGROUND_COLOR)
 quarantine_after_slider = it.Slider(display, font, 'Quarantine After', (1150, 460), valueRange=(1, 30), initial_value=quarantine_after, textBGColor=BACKGROUND_COLOR, append_text="d")
-enable_traveling_toggle = it.Toggle(display, font, 'Traveling', (1310, 505), initial_value=enable_traveling, textBGColor=BACKGROUND_COLOR)
+traveling_toggle = it.Toggle(display, font, 'Traveling', (1310, 505), initial_value=enable_traveling, textBGColor=BACKGROUND_COLOR)
 traveling_rate_slider = it.Slider(display, font, 'Traveling Rate', (1150, 550), valueRange=(1, 7), initial_value=traveling_rate_per_week, textBGColor=BACKGROUND_COLOR, append_text="/w", value_datatype='float')
+simulation_speed_slider = it.Slider(display, font, 'Simulation Speed', (1150, 595), valueRange=(1, 3), initial_value=simulation_speed, textBGColor=BACKGROUND_COLOR, append_text="x")
 
 # Labels
 day_label = it.Label(display, font, 'Day', day, (910, 25), background_color=BACKGROUND_COLOR)
@@ -345,7 +348,21 @@ while True:
     display.fill(BACKGROUND_COLOR)
     display.blit(surf, (-40,500))
     np.vectorize(draw_wall)(walls)
-
+    if mode == 1:
+        if enable_traveling:
+            if i % traveling_period == 0:
+                particle = np.random.choice(free_particles)
+                if not particle.traveling:
+                    destination = np.random.randint(1, 10)
+                    while destination == particle.community:
+                        destination = np.random.randint(1, 10)
+                    particle.travel_init(communities_coor[destination-1][0], communities_coor[destination-1][1])
+    elif mode == 2:
+        if i % 2 == 0:
+            particle = np.random.choice(free_particles)
+            if not particle.traveling:
+                particle.travel_init(450,250)
+        pygame.draw.rect(display, (150,150,150), pygame.Rect(415, 215, 70, 70))
     # Draw Interactive Tools
     if active_button.draw():
         for wall in walls:
@@ -358,6 +375,12 @@ while True:
         susceptible_count, infected_count, recovered_count = [], [], []
         total_infected = initially_infected
         practical_probability_of_infection = 0
+        simulation_speed = simulation_speed_temp
+        day_length_in_frames = 30//simulation_speed
+        two_days = day_length_in_frames*2
+        traveling_period = int(day_length_in_frames/(traveling_rate_per_week/7))
+        for particle in particles:
+            particle.recovery_time = recovery_time*day_length_in_frames
         day = 0
         infected_count_two_days_ago = initially_infected
         R0 = 0
@@ -379,11 +402,13 @@ while True:
         quarantine = quarantine_toggle.value
     if quarantine_after_slider.draw():
         quarantine_after = quarantine_after_slider.value * FPS
-    if enable_traveling_toggle.draw():
-        enable_traveling = enable_traveling_toggle.value
+    if traveling_toggle.draw():
+        enable_traveling = traveling_toggle.value
     if traveling_rate_slider.draw():
         traveling_rate_per_week = traveling_rate_slider.value
         traveling_period = int(day_length_in_frames/(traveling_rate_per_week/7))
+    if simulation_speed_slider.draw():
+        simulation_speed_temp = simulation_speed_slider.value
     if reset_button.draw():
         initially_infected = int(np.ceil(population * percentage_initially_infected / 100))
         particles = reset_button.reset(space, particles, population, initially_infected)
@@ -391,6 +416,12 @@ while True:
         susceptible_count, infected_count, recovered_count = [], [], []
         total_infected = initially_infected
         practical_probability_of_infection = 0
+        simulation_speed = simulation_speed_temp
+        day_length_in_frames = 30//simulation_speed
+        two_days = day_length_in_frames*2
+        traveling_period = int(day_length_in_frames/(traveling_rate_per_week/7))
+        for particle in particles:
+            particle.recovery_time = recovery_time*day_length_in_frames
         day = 0
         infected_count_two_days_ago = initially_infected
         R0 = 0
@@ -477,21 +508,12 @@ while True:
             day+=1
             surf = plot_result(susceptible_count, infected_count, recovered_count)
             
-        if mode == 1:
-            if enable_traveling:
-                if i % traveling_period == 0:
-                    particle = np.random.choice(free_particles)
-                    if not particle.traveling:
-                        destination = np.random.randint(1, 10)
-                        while destination == particle.community:
-                            destination = np.random.randint(1, 10)
-                        particle.travel_init(communities_coor[destination-1][0], communities_coor[destination-1][1])
-
+        ###
         if len(susceptible_count) < 20000:
             susceptible_count.append(susceptible_count_this_frame)
             infected_count.append(infected_count_this_frame)
             recovered_count.append(recovered_count_this_frame)
-        space.step(1/FPS)
+        space.step(simulation_speed/FPS)
         clock.tick(FPS)
         i += 1
     else:
