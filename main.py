@@ -306,6 +306,18 @@ def plot_result(susceptible_count, infected_count, recovered_count):
     return surf
 
 
+# variable initialization
+particles = populate()
+free_particles = particles[:]
+walls = build_wall(mode)
+quarantine_center_x, quarantine_center_y = width+50, height-50
+susceptible_count, infected_count, recovered_count = [], [], []
+total_infected = initially_infected
+quarantine_after = quarantine_after*FPS
+infected_count_two_days_ago = initially_infected
+i = 1
+total_infected_shift = 0
+
 # Interactive tools
 start_button = it.StartButton(display, font, 'Simulate', 'Pause', 100, 40, (1050, 25))
 reset_button = it.ResetButton(display, font, 'Reset', 100, 40, (1250, 25), populate)
@@ -325,22 +337,13 @@ simulation_speed_slider = it.Slider(display, font, 'Simulation Speed', (1150, 59
 # Labels
 day_label = it.Label(display, font, 'Day', day, (910, 25), background_color=BACKGROUND_COLOR)
 practical_probability_of_infection_label = it.Label(display, font, 'Prob', practical_probability_of_infection, (910, 50), background_color=BACKGROUND_COLOR)
-R0_label = it.Label(display, font, 'R0', R0, (910, 75), background_color=BACKGROUND_COLOR)
+total_infected_label = it.Label(display, font, 'Total', total_infected, (910, 75), background_color=BACKGROUND_COLOR)
+R0_label = it.Label(display, font, 'R0', R0, (910, 100), background_color=BACKGROUND_COLOR)
 susceptible_label = it.KeyLabel(display, font, 'Suscep', susceptible_color, (910, 290), background_color=BACKGROUND_COLOR)
 sympotomatic_label = it.KeyLabel(display, font, 'Sympto', sympotomatic_color, (910, 315), background_color=BACKGROUND_COLOR)
 asymptomatic_label = it.KeyLabel(display, font, 'Asympto', asympotomatic_color, (910, 340), background_color=BACKGROUND_COLOR)
 removed_label = it.KeyLabel(display, font, 'Removed', removed_color, (910, 365), background_color=BACKGROUND_COLOR)
 traveler_label = it.KeyLabel(display, font, 'Traveler', traveler_color, (910, 390), background_color=BACKGROUND_COLOR)
-
-particles = populate()
-free_particles = particles[:]
-walls = build_wall(mode)
-quarantine_center_x, quarantine_center_y = width+50, height-50
-susceptible_count, infected_count, recovered_count = [], [], []
-total_infected = initially_infected
-quarantine_after = quarantine_after*FPS
-infected_count_two_days_ago = initially_infected
-i = 1
 
 surf = plot_result(susceptible_count, infected_count, recovered_count)
 
@@ -348,20 +351,7 @@ while True:
     display.fill(BACKGROUND_COLOR)
     display.blit(surf, (-40,500))
     np.vectorize(draw_wall)(walls)
-    if mode == 1:
-        if enable_traveling:
-            if i % traveling_period == 0:
-                particle = np.random.choice(free_particles)
-                if not particle.traveling:
-                    destination = np.random.randint(1, 10)
-                    while destination == particle.community:
-                        destination = np.random.randint(1, 10)
-                    particle.travel_init(communities_coor[destination-1][0], communities_coor[destination-1][1])
-    elif mode == 2:
-        if i % 2 == 0:
-            particle = np.random.choice(free_particles)
-            if not particle.traveling:
-                particle.travel_init(450,250)
+    if mode==2:
         pygame.draw.rect(display, (150,150,150), pygame.Rect(415, 215, 70, 70))
     # Draw Interactive Tools
     if active_button.draw():
@@ -430,9 +420,12 @@ while True:
     start_button.draw()
 
     # Draw Labels
-    practical_probability_of_infection_label.draw(practical_probability_of_infection*100)
-    R0_label.draw(R0)
     day_label.draw(day)
+    practical_probability_of_infection_label.draw(practical_probability_of_infection*100)
+    if total_infected!=initially_infected:
+       total_infected_shift = initially_infected
+    total_infected_label.draw(total_infected+total_infected_shift)
+    R0_label.draw(R0)
     susceptible_label.draw()
     sympotomatic_label.draw()
     asymptomatic_label.draw()
@@ -508,7 +501,21 @@ while True:
             day+=1
             surf = plot_result(susceptible_count, infected_count, recovered_count)
             
-        ###
+        if mode == 1:
+            if enable_traveling:
+                if i % traveling_period == 0:
+                    particle = np.random.choice(free_particles)
+                    if not particle.traveling:
+                        destination = np.random.randint(1, 10)
+                        while destination == particle.community:
+                            destination = np.random.randint(1, 10)
+                        particle.travel_init(communities_coor[destination-1][0], communities_coor[destination-1][1])
+        elif mode == 2:
+            if i % 2 == 0:
+                particle = np.random.choice(free_particles)
+                if not particle.traveling:
+                    particle.travel_init(450,250)
+
         if len(susceptible_count) < 20000:
             susceptible_count.append(susceptible_count_this_frame)
             infected_count.append(infected_count_this_frame)
