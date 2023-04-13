@@ -313,7 +313,7 @@ walls = build_wall(mode)
 quarantine_center_x, quarantine_center_y = width+50, height-50
 susceptible_count, infected_count, recovered_count = [], [], []
 total_infected = initially_infected
-quarantine_after = quarantine_after*FPS
+quarantine_after_in_frames = quarantine_after*day_length_in_frames
 infected_count_two_days_ago = initially_infected
 i = 1
 total_infected_shift = 0
@@ -368,6 +368,7 @@ while True:
         simulation_speed = simulation_speed_temp
         day_length_in_frames = 30//simulation_speed
         two_days = day_length_in_frames*2
+        total_infected_shift = 0
         traveling_period = int(day_length_in_frames/(traveling_rate_per_week/7))
         for particle in particles:
             particle.recovery_time = recovery_time*day_length_in_frames
@@ -391,7 +392,7 @@ while True:
     if quarantine_toggle.draw():
         quarantine = quarantine_toggle.value
     if quarantine_after_slider.draw():
-        quarantine_after = quarantine_after_slider.value * FPS
+        quarantine_after_in_frames = quarantine_after_slider.value * day_length_in_frames
     if traveling_toggle.draw():
         enable_traveling = traveling_toggle.value
     if traveling_rate_slider.draw():
@@ -409,6 +410,7 @@ while True:
         simulation_speed = simulation_speed_temp
         day_length_in_frames = 30//simulation_speed
         two_days = day_length_in_frames*2
+        total_infected_shift = 0
         traveling_period = int(day_length_in_frames/(traveling_rate_per_week/7))
         for particle in particles:
             particle.recovery_time = recovery_time*day_length_in_frames
@@ -460,7 +462,7 @@ while True:
                     if particle.symptomatic:
                         if not particle.traveling:
                             if not ((width+100 > particle.body.position[0] > width) and (height > particle.body.position[1] > height-100)):
-                                if particle.infected_time > quarantine_after:
+                                if particle.infected_time > quarantine_after_in_frames:
                                     particle.travel_init(quarantine_center_x, quarantine_center_y)
                                     particle.travel()
                             else:
