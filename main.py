@@ -66,7 +66,7 @@ practical_probability_of_infection = 0
 R0 = 0
 vaccination = False
 vaccine_efficiency = 0.9 # 0 being totally uneffective, 1 being complete immunity
-
+indicators = {}
 
 class Particle:
     # susceptible_icon = pygame.image.load("/Users/nacerkroudir/Documents/Master's Project/Icons/Susceptible_icon.png")
@@ -299,6 +299,9 @@ def plot_result(susceptible_count, infected_count, recovered_count, vaccinated_c
     else:
         ticks = np.arange(0, number_of_frames + 1, day_length_in_frames * 100).astype(int)
         labels = ['{}'.format(v // day_length_in_frames) for v in ticks]
+    for key in indicators:
+        plt.axvline(key, c='black')
+        plt.text(key+1,population//3,indicators[key],rotation=90)
     plt.xticks(ticks, labels)
     # plt.xlabel('Days')
     plt.ylabel('Population')
@@ -347,7 +350,8 @@ day_label = it.Label(display, font, 'Day', day, (910, 25), background_color=BACK
 practical_probability_of_infection_label = it.Label(display, font, 'Prob', practical_probability_of_infection, (910, 50), background_color=BACKGROUND_COLOR)
 total_infected_label = it.Label(display, font, 'Total', total_infected, (910, 75), background_color=BACKGROUND_COLOR)
 R0_label = it.Label(display, font, 'R0', R0, (910, 100), background_color=BACKGROUND_COLOR)
-susceptible_label = it.KeyLabel(display, font, 'Suscep', susceptible_color, (910, 290), background_color=BACKGROUND_COLOR)
+susceptible_label = it.KeyLabel(display, font, 'Suscep', susceptible_color, (910, 265), background_color=BACKGROUND_COLOR)
+vaccinated_label = it.KeyLabel(display, font, 'Vaccin', vaccinated_color, (910, 290), background_color=BACKGROUND_COLOR)
 sympotomatic_label = it.KeyLabel(display, font, 'Sympto', sympotomatic_color, (910, 315), background_color=BACKGROUND_COLOR)
 asymptomatic_label = it.KeyLabel(display, font, 'Asympto', asympotomatic_color, (910, 340), background_color=BACKGROUND_COLOR)
 removed_label = it.KeyLabel(display, font, 'Removed', removed_color, (910, 365), background_color=BACKGROUND_COLOR)
@@ -383,6 +387,7 @@ while True:
         day = 0
         infected_count_two_days_ago = initially_infected
         R0 = 0
+        indicators = {}
         if not start_button.paused:
             start_button.pause()
     if population_slider.draw():
@@ -399,10 +404,19 @@ while True:
         recovery_time = recovery_time_slider.value
     if quarantine_toggle.draw():
         quarantine = quarantine_toggle.value
+        if quarantine:
+            indicators[len(susceptible_count)] = 'quarantine start'
+        else:
+            indicators[len(susceptible_count)] = 'quarantine end'
     if quarantine_after_slider.draw():
         quarantine_after_in_frames = quarantine_after_slider.value * day_length_in_frames
     if traveling_toggle.draw():
         enable_traveling = traveling_toggle.value
+        if mode == 1:
+            if enable_traveling:
+                indicators[len(susceptible_count)] = 'enable traveling'
+            else:
+                indicators[len(susceptible_count)] = 'disable traveling'
     if traveling_rate_slider.draw():
         traveling_rate_per_week = traveling_rate_slider.value
         traveling_period = int(day_length_in_frames/(traveling_rate_per_week/7))
@@ -429,6 +443,7 @@ while True:
         day = 0
         infected_count_two_days_ago = initially_infected
         R0 = 0
+        indicators = {}
         if not start_button.paused:
             start_button.pause()
     start_button.draw()
@@ -441,6 +456,7 @@ while True:
     total_infected_label.draw(total_infected+total_infected_shift)
     R0_label.draw(R0)
     susceptible_label.draw()
+    vaccinated_label.draw()
     sympotomatic_label.draw()
     asymptomatic_label.draw()
     removed_label.draw()
