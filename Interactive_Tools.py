@@ -334,3 +334,30 @@ class ActiveButton:
             self.button2.disable_click()
             action = True
         return action
+
+
+class SaveButton(Button):
+    def __init__(self, display, font, text, width, height, position, save_simulation):
+        Button.__init__(self, display, font, text, width, height, position)
+        self.save_simulation = save_simulation
+
+    def save(self):
+        self.save_simulation()
+    
+    def check_click(self):
+        action = False
+        mouse_position = pygame.mouse.get_pos()
+        if self.top_rect.collidepoint(mouse_position):
+            self.top_color = '#419E41'
+            if pygame.mouse.get_pressed()[0]:
+                self.dynamic_elevation = 0
+                self.pressed = True
+            else:
+                if self.pressed:
+                    self.dynamic_elevation = self.elevation
+                    action = True
+                    self.pressed = False
+        else:
+            self.top_color = '#34BF49'
+        return action
+

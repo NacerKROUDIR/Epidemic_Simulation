@@ -1,6 +1,7 @@
 import pygame
 import pymunk
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 import Interactive_Tools as it
 import matplotlib
@@ -315,15 +316,50 @@ def plot_result(susceptible_count, infected_count, recovered_count, vaccinated_c
     return surf
 
 
+def save_simulation():
+    if mode == 0:
+        mode_ = 'Normal'
+    elif mode ==1:
+        mode_ = 'Communities'
+    else:
+        mode_ = 'Central Place'
+    simulation_dict = {'Mode': mode_,
+                       'Population': population,
+                       'Infection Radius': infection_radius,
+                       'Recovery Time': recovery_time,
+                       'Symptoms Probability %': probability_of_symptoms,
+                       'Theoritical Infection Probability %': probability_of_infection, 
+                       'Practical Infection Probability %': practical_probabilities_of_infection,
+                       'Quarantine After': quarantine_after,
+                       'Quarantine': quarantine, # change this
+                       'Vaccination Effictiviness %': vaccine_efficiency*100,
+                       'Vaccination': vaccination, # change this
+                       'Day': range(1,day+1),
+                       'Susceptible': susceptible_count[::day_length_in_frames][:day],
+                       'Infected': infected_count[::day_length_in_frames][:day],
+                       'Removed': recovered_count[::day_length_in_frames][:day],
+                       'Vaccinated': vaccinated_count[::day_length_in_frames][:day],
+                       'R0': R0s[:day]
+                        }
+    if mode == 1:
+        simulation_dict['Traveling Rate per Week'] = traveling_rate_per_week 
+        simulation_dict['Traveling'] = enable_traveling # change this
+    print(simulation_dict)
+    data = pd.DataFrame(simulation_dict)
+    print(data.head())
+    data.to_csv('Saved Simulations/0001.csv', index=False)
+        
+
 # variable initialization
 particles = populate()
 free_particles = particles[:]
 walls = build_wall(mode)
 quarantine_center_x, quarantine_center_y = width+50, height-50
 susceptible_count, infected_count, recovered_count, vaccinated_count = [], [], [], []
+practical_probabilities_of_infection, R0s = [], [0]
 total_infected = initially_infected
 quarantine_after_in_frames = quarantine_after*day_length_in_frames
-infected_count_two_days_ago = initially_infected
+infected_count_two_days_ago = [0, initially_infected]
 i = 1
 total_infected_shift = 0
 
@@ -344,6 +380,7 @@ traveling_rate_slider = it.Slider(display, font, 'Traveling Rate', (1150, 550), 
 simulation_speed_slider = it.Slider(display, font, 'Simulation Speed', (1150, 595), valueRange=(1, 3), initial_value=simulation_speed, textBGColor=BACKGROUND_COLOR, append_text="x")
 vaccination_toggle = it.Toggle(display, font, 'Vaccination', (1310, 640), initial_value=vaccination, textBGColor=BACKGROUND_COLOR)
 vaccination_efficiency_slider = it.Slider(display, font, 'Vaccine Efficiency', (1150, 685), valueRange=(1, 100), initial_value=int(vaccine_efficiency*100), textBGColor=BACKGROUND_COLOR, append_text="%")
+save_button = it.SaveButton(display, font, 'Save Simulation', 300, 40, (1050, 730), save_simulation)
 
 # Labels
 day_label = it.Label(display, font, 'Day', day, (910, 25), background_color=BACKGROUND_COLOR)
@@ -385,9 +422,10 @@ while True:
         for particle in particles:
             particle.recovery_time = recovery_time*day_length_in_frames
         day = 0
-        infected_count_two_days_ago = initially_infected
+        infected_count_two_days_ago = [0, initially_infected]
         R0 = 0
         indicators = {}
+        practical_probabilities_of_infection, R0s = [], [0]
         if not start_button.paused:
             start_button.pause()
     if population_slider.draw():
@@ -441,12 +479,15 @@ while True:
         for particle in particles:
             particle.recovery_time = recovery_time*day_length_in_frames
         day = 0
-        infected_count_two_days_ago = initially_infected
+        infected_count_two_days_ago = [0, initially_infected]
         R0 = 0
         indicators = {}
+        practical_probabilities_of_infection, R0s = [], [0]
         if not start_button.paused:
             start_button.pause()
     start_button.draw()
+    if save_button.draw():
+        save_button.save()
 
     # Draw Labels
     day_label.draw(day)
@@ -468,8 +509,7 @@ while True:
             total_interactions_with_infected = 0
             for particle in particles:
                 total_interactions_with_infected += particle.interaction_with_infected_count
-            print(f"total number of interactions with infected: {total_interactions_with_infected}")
-            print(f"practical probability of infection: {practical_probability_of_infection}")
+            save_simulation()
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_SPACE:
                 start_button.pause()
@@ -518,23 +558,25 @@ while True:
                     particle.arrive()
             total_interactions_with_infected += particle.interaction_with_infected_count
 
-        # Some Statistics
+        # Calculate Statistics
         total_infected = recovered_count_this_frame + infected_count_this_frame - initially_infected
         try:
             practical_probability_of_infection = total_infected / total_interactions_with_infected
         except ZeroDivisionError:
             practical_probability_of_infection = 0
-        if i%two_days==0:
+        if i%day_length_in_frames==0:
             day+=1
+            practical_probabilities_of_infection.append(practical_probability_of_infection*100)
             surf = plot_result(susceptible_count, infected_count, recovered_count, vaccinated_count)
             try:
-                R0 = infected_count_this_frame / infected_count_two_days_ago
-                infected_count_two_days_ago = infected_count_this_frame
+                R0 = infected_count_this_frame / infected_count_two_days_ago[0]
+                R0s.append(R0)
+                infected_count_two_days_ago.append(infected_count_this_frame)
+                del infected_count_two_days_ago[0]
             except ZeroDivisionError:
-                infected_count_two_days_ago = infected_count_this_frame
-        elif i%day_length_in_frames==0:
-            day+=1
-            surf = plot_result(susceptible_count, infected_count, recovered_count, vaccinated_count)
+                R0s.append(0)
+                infected_count_two_days_ago.append(infected_count_this_frame)
+                del infected_count_two_days_ago[0]
             
         if mode == 1:
             # Communities
