@@ -5,6 +5,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import Interactive_Tools as it
 import matplotlib
+from matplotlib.ticker import MaxNLocator
 import matplotlib.backends.backend_agg as agg
 matplotlib.use("Agg")
 plt.rcParams['axes.facecolor'] = (0.67,0.67,0.67)
@@ -136,26 +137,6 @@ class Particle:
         else:
             # display.blit(self.susceptible_icon, (int(x), int(y)))
             pygame.draw.circle(display, susceptible_color, (int(x), int(y)), drawing_radius)
-        """
-        if self.community == 1:
-            pygame.draw.circle(display, (30, 30, 200), (int(x), int(y)), drawing_radius)
-        elif self.community == 2:
-            pygame.draw.circle(display, (200, 30, 200), (int(x), int(y)), drawing_radius)
-        elif self.community == 3:
-            pygame.draw.circle(display, (30, 200, 200), (int(x), int(y)), drawing_radius)
-        elif self.community == 4:
-            pygame.draw.circle(display, (30, 30, 30), (int(x), int(y)), drawing_radius)
-        elif self.community == 5:
-            pygame.draw.circle(display, (150, 150, 30), (int(x), int(y)), drawing_radius)
-        elif self.community == 6:
-            pygame.draw.circle(display, (30, 100, 0), (int(x), int(y)), drawing_radius)
-        elif self.community == 7:
-            pygame.draw.circle(display, (200, 20, 50), (int(x), int(y)), drawing_radius)
-        elif self.community == 8:
-            pygame.draw.circle(display, (60, 150, 6), (int(x), int(y)), drawing_radius)
-        else:
-            pygame.draw.circle(display, (9, 255, 58), (int(x), int(y)), drawing_radius)
-        """
 
     def initial_infect(self, arbitor=0, space=0, data=0):
         self.infected = True
@@ -279,32 +260,13 @@ def plot_result(susceptible_count, infected_count, recovered_count, vaccinated_c
     fig = plt.figure(figsize=[11.4, 3], dpi=100)
     fig.patch.set_facecolor((0.67,0.67,0.67))
     ax = fig.gca()
-    ax.stackplot(range(number_of_frames), infected_count, susceptible_count, vaccinated_count, recovered_count,
+    ax.stackplot(range(day), infected_count, susceptible_count, vaccinated_count, recovered_count,
                   colors=colors, labels=labels)
-    number_of_days = number_of_frames // day_length_in_frames
-    if number_of_days < 10:
-        ticks = np.arange(0, number_of_frames + 1, day_length_in_frames).astype(int)
-        labels = ['{}'.format(v // day_length_in_frames) for v in ticks]
-    elif number_of_days < 50:
-        ticks = np.arange(0, number_of_frames + 1, day_length_in_frames*5).astype(int)
-        labels = ['{}'.format(v // day_length_in_frames) for v in ticks]
-    elif number_of_days < 100:
-        ticks = np.arange(0, number_of_frames + 1, day_length_in_frames*10).astype(int)
-        labels = ['{}'.format(v // day_length_in_frames) for v in ticks]
-    elif number_of_days < 200:
-        ticks = np.arange(0, number_of_frames + 1, day_length_in_frames*20).astype(int)
-        labels = ['{}'.format(v // day_length_in_frames) for v in ticks]
-    elif number_of_days < 500:
-        ticks = np.arange(0, number_of_frames + 1, day_length_in_frames * 50).astype(int)
-        labels = ['{}'.format(v // day_length_in_frames) for v in ticks]
-    else:
-        ticks = np.arange(0, number_of_frames + 1, day_length_in_frames * 100).astype(int)
-        labels = ['{}'.format(v // day_length_in_frames) for v in ticks]
     for key in indicators:
         plt.axvline(key, c='black')
-        plt.text(key+1,population//3,indicators[key],rotation=90)
-    plt.xticks(ticks, labels)
-    # plt.xlabel('Days')
+        plt.text(key+0.2,population//3,indicators[key],rotation=90)
+    ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+    plt.xlabel('Days')
     plt.ylabel('Population')
     plt.legend()
     canvas = agg.FigureCanvasAgg(fig)
@@ -331,19 +293,19 @@ def save_simulation():
                        'Theoritical Infection Probability %': probability_of_infection, 
                        'Practical Infection Probability %': practical_probabilities_of_infection,
                        'Quarantine After': quarantine_after,
-                       'Quarantine': quarantine, # change this
+                       'Quarantine': quarantine_data,
                        'Vaccination Effictiviness %': vaccine_efficiency*100,
-                       'Vaccination': vaccination, # change this
-                       'Day': range(1,day+1),
-                       'Susceptible': susceptible_count[::day_length_in_frames][:day],
-                       'Infected': infected_count[::day_length_in_frames][:day],
-                       'Removed': recovered_count[::day_length_in_frames][:day],
-                       'Vaccinated': vaccinated_count[::day_length_in_frames][:day],
-                       'R0': R0s[:day]
+                       'Vaccination': vaccination_data,
+                       'Day': range(day),
+                       'Susceptible': susceptible_count,
+                       'Infected': infected_count,
+                       'Removed': recovered_count,
+                       'Vaccinated': vaccinated_count,
+                       'R0': R0s
                         }
     if mode == 1:
         simulation_dict['Traveling Rate per Week'] = traveling_rate_per_week 
-        simulation_dict['Traveling'] = enable_traveling # change this
+        simulation_dict['Traveling'] = enable_traveling_data
     print(simulation_dict)
     data = pd.DataFrame(simulation_dict)
     print(data.head())
@@ -356,17 +318,18 @@ free_particles = particles[:]
 walls = build_wall(mode)
 quarantine_center_x, quarantine_center_y = width+50, height-50
 susceptible_count, infected_count, recovered_count, vaccinated_count = [], [], [], []
-practical_probabilities_of_infection, R0s = [], [0]
+practical_probabilities_of_infection, R0s = [], []
+quarantine_data, vaccination_data, enable_traveling_data = [], [], []
 total_infected = initially_infected
 quarantine_after_in_frames = quarantine_after*day_length_in_frames
-infected_count_two_days_ago = [0, initially_infected]
+infected_count_two_days_ago = [0, 0]
 i = 1
 total_infected_shift = 0
 
 # Interactive tools
 start_button = it.StartButton(display, font, 'Simulate', 'Pause', 100, 40, (1050, 25))
 reset_button = it.ResetButton(display, font, 'Reset', 100, 40, (1250, 25), populate)
-active_button = it.ActiveButton(display, font2, ['Normal', 'Communities', 'Central Place'], [100,100,100], 40, (1050,85))
+active_button = it.ActiveButton(display, font2, ['Basic', 'Communities', 'Central Place'], [100,100,100], 40, (1050,85))
 population_slider = it.Slider(display, font, 'Population', (1150, 145), valueRange=(2,1000), initial_value=population, textBGColor=BACKGROUND_COLOR)
 percentage_initially_infected_slider = it.Slider(display, font, 'Initially Infected', (1150, 190), valueRange=(1,100), initial_value=percentage_initially_infected, textBGColor=BACKGROUND_COLOR, append_text="%")
 infection_radius_slider = it.Slider(display, font, 'Infection Radius', (1150, 235), valueRange=(4, 30), initial_value=infection_radius, textBGColor=BACKGROUND_COLOR)
@@ -417,15 +380,17 @@ while True:
         simulation_speed = simulation_speed_temp
         day_length_in_frames = 30//simulation_speed
         two_days = day_length_in_frames*2
+        quarantine_after_in_frames = quarantine_after_slider.value * day_length_in_frames
         total_infected_shift = 0
         traveling_period = int(day_length_in_frames/(traveling_rate_per_week/7))
         for particle in particles:
             particle.recovery_time = recovery_time*day_length_in_frames
         day = 0
-        infected_count_two_days_ago = [0, initially_infected]
+        infected_count_two_days_ago = [0, 0]
         R0 = 0
         indicators = {}
-        practical_probabilities_of_infection, R0s = [], [0]
+        practical_probabilities_of_infection, R0s = [], []
+        quarantine_data, vaccination_data, enable_traveling_data = [], [], []
         if not start_button.paused:
             start_button.pause()
     if population_slider.draw():
@@ -474,15 +439,17 @@ while True:
         simulation_speed = simulation_speed_temp
         day_length_in_frames = 30//simulation_speed
         two_days = day_length_in_frames*2
+        quarantine_after_in_frames = quarantine_after_slider.value * day_length_in_frames
         total_infected_shift = 0
         traveling_period = int(day_length_in_frames/(traveling_rate_per_week/7))
         for particle in particles:
             particle.recovery_time = recovery_time*day_length_in_frames
         day = 0
-        infected_count_two_days_ago = [0, initially_infected]
+        infected_count_two_days_ago = [0, 0]
         R0 = 0
         indicators = {}
-        practical_probabilities_of_infection, R0s = [], [0]
+        practical_probabilities_of_infection, R0s = [], []
+        quarantine_data, vaccination_data, enable_traveling_data = [], [], []
         if not start_button.paused:
             start_button.pause()
     start_button.draw()
@@ -560,12 +527,17 @@ while True:
 
         # Calculate Statistics
         total_infected = recovered_count_this_frame + infected_count_this_frame - initially_infected
-        try:
-            practical_probability_of_infection = total_infected / total_interactions_with_infected
-        except ZeroDivisionError:
-            practical_probability_of_infection = 0
         if i%day_length_in_frames==0:
             day+=1
+            # record data
+            susceptible_count.append(susceptible_count_this_frame)
+            infected_count.append(infected_count_this_frame)
+            recovered_count.append(recovered_count_this_frame)
+            vaccinated_count.append(vaccinated_count_this_frame)
+            try:
+                practical_probability_of_infection = total_infected / total_interactions_with_infected
+            except ZeroDivisionError:
+                practical_probability_of_infection = 0
             practical_probabilities_of_infection.append(practical_probability_of_infection*100)
             surf = plot_result(susceptible_count, infected_count, recovered_count, vaccinated_count)
             try:
@@ -577,7 +549,9 @@ while True:
                 R0s.append(0)
                 infected_count_two_days_ago.append(infected_count_this_frame)
                 del infected_count_two_days_ago[0]
-            
+            quarantine_data.append(quarantine)
+            vaccination_data.append(vaccination)
+            enable_traveling_data.append(enable_traveling)
         if mode == 1:
             # Communities
             if enable_traveling:
@@ -605,11 +579,6 @@ while True:
                     particle.probability_of_infection = particle.probability_of_infection*(1-vaccine_efficiency)
             except ValueError:
                 pass
-        # record data
-        susceptible_count.append(susceptible_count_this_frame)
-        infected_count.append(infected_count_this_frame)
-        recovered_count.append(recovered_count_this_frame)
-        vaccinated_count.append(vaccinated_count_this_frame)
         space.step(simulation_speed/FPS)
         clock.tick(FPS)
         i += 1
