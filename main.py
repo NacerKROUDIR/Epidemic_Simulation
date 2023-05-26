@@ -37,7 +37,7 @@ day = 0
 infection_radius = 16  # 4 to 30
 radius = infection_radius/2
 drawing_radius = 4
-population = 300
+population = 500
 percentage_initially_infected = 1  # %
 initially_infected = int(np.ceil(population * percentage_initially_infected/100))
 probability_of_infection = 7       # %
@@ -254,14 +254,18 @@ def populate(population=population, initially_infected=initially_infected):
 
 
 def plot_result(susceptible_count, infected_count, recovered_count, vaccinated_count):
-    number_of_frames = len(susceptible_count)
-    colors = ['#ff4c4c', '#34bf49', '#0b870b', '#0099e5']
-    labels = ['Infected', 'Susceptible', 'vaccinated', 'Removed']
+    days = range(day)
     fig = plt.figure(figsize=[11.4, 3], dpi=100)
     fig.patch.set_facecolor((0.67,0.67,0.67))
     ax = fig.gca()
-    ax.stackplot(range(day), infected_count, susceptible_count, vaccinated_count, recovered_count,
-                  colors=colors, labels=labels)
+    """ax.stackplot(range(day), infected_count, susceptible_count, vaccinated_count, recovered_count,
+                  colors=colors, labels=labels)"""
+    ax.cla()
+    ax.plot(days, susceptible_count, c='#32FA50', linewidth=2, label='Susceptible')
+    ax.plot(days, infected_count, c='#FA1414', linewidth=2, label='Infected')
+    ax.plot(days, recovered_count, c='#1E1EC8', linewidth=2, label='Removed')
+    if any(v != 0 for v in vaccinated_count):
+        ax.plot(days, vaccinated_count, c='#0B870B', linewidth=2, label='Vaccinated')
     for key in indicators:
         plt.axvline(key, c='black')
         plt.text(key+0.2,population//3,indicators[key],rotation=90)
@@ -280,7 +284,7 @@ def plot_result(susceptible_count, infected_count, recovered_count, vaccinated_c
 
 def save_simulation():
     if mode == 0:
-        mode_ = 'Normal'
+        mode_ = 'Basic'
     elif mode ==1:
         mode_ = 'Communities'
     else:
@@ -330,7 +334,7 @@ total_infected_shift = 0
 start_button = it.StartButton(display, font, 'Simulate', 'Pause', 100, 40, (1050, 25))
 reset_button = it.ResetButton(display, font, 'Reset', 100, 40, (1250, 25), populate)
 active_button = it.ActiveButton(display, font2, ['Basic', 'Communities', 'Central Place'], [100,100,100], 40, (1050,85))
-population_slider = it.Slider(display, font, 'Population', (1150, 145), valueRange=(2,1000), initial_value=population, textBGColor=BACKGROUND_COLOR)
+population_slider = it.Slider(display, font, 'Population Size', (1150, 145), valueRange=(2,1000), initial_value=population, textBGColor=BACKGROUND_COLOR)
 percentage_initially_infected_slider = it.Slider(display, font, 'Initially Infected', (1150, 190), valueRange=(1,100), initial_value=percentage_initially_infected, textBGColor=BACKGROUND_COLOR, append_text="%")
 infection_radius_slider = it.Slider(display, font, 'Infection Radius', (1150, 235), valueRange=(4, 30), initial_value=infection_radius, textBGColor=BACKGROUND_COLOR)
 probability_of_infection_slider = it.Slider(display, font, 'Infection Prob', (1150, 280), valueRange=(0, 100), initial_value=probability_of_infection, textBGColor=BACKGROUND_COLOR, append_text="%")
@@ -552,6 +556,8 @@ while True:
             quarantine_data.append(quarantine)
             vaccination_data.append(vaccination)
             enable_traveling_data.append(enable_traveling)
+            if infected_count_this_frame == 0:
+                start_button.pause()
         if mode == 1:
             # Communities
             if enable_traveling:
